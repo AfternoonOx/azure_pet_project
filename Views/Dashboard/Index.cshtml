@@ -1,0 +1,262 @@
+@model SmartFeedbackCollector.Models.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Panel";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Panel Opinii</h1>
+    <p class="lead">Analiza wszystkich przesłanych opinii z zaawansowanymi statystykami.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card text-center mb-4 fade-in">
+            <div class="card-header">
+                Całkowita Liczba Opinii
+            </div>
+            <div class="card-body">
+                <h1 class="display-4">@Model.TotalFeedbackCount</h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card mb-4 fade-in">
+            <div class="card-header">
+                Podział Sentymentu
+            </div>
+            <div class="card-body">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card fade-in mb-4">
+            <div class="card-header">
+                Opinie w Czasie
+            </div>
+            <div class="card-body">
+                <canvas id="timeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card fade-in mb-4">
+            <div class="card-header">
+                <i class="bi bi-translate me-2"></i>Rozkład Języków
+            </div>
+            <div class="card-body">
+                @if (Model.LanguageDistribution != null && Model.LanguageDistribution.Any())
+                {
+                    <canvas id="languageChart"></canvas>
+                }
+                else
+                {
+                    <p class="text-center text-muted">Brak danych o językach.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card fade-in mb-4">
+            <div class="card-header">
+                <i class="bi bi-tags me-2"></i>Najważniejsze Frazy Kluczowe
+            </div>
+            <div class="card-body">
+                @if (Model.TopKeyPhrases != null && Model.TopKeyPhrases.Any())
+                {
+                    <canvas id="keyPhrasesChart"></canvas>
+                }
+                else
+                {
+                    <p class="text-center text-muted">Brak dostępnych fraz kluczowych.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="height: 40px;"></div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const colors = {
+                black: {
+                    main: 'rgba(0, 0, 0, 0.8)',
+                    light: 'rgba(0, 0, 0, 0.6)',
+                    lighter: 'rgba(0, 0, 0, 0.4)',
+                    lightest: 'rgba(0, 0, 0, 0.2)',
+                    background: 'rgba(0, 0, 0, 0.1)'
+                },
+                gray: {
+                    dark: 'rgba(100, 100, 100, 0.8)',
+                    medium: 'rgba(150, 150, 150, 0.8)',
+                    light: 'rgba(200, 200, 200, 0.8)'
+                }
+            };
+
+            const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+            new Chart(sentimentCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Pozytywne', 'Neutralne', 'Negatywne'],
+                    datasets: [{
+                        data: [@Model.PositiveFeedbackCount, @Model.NeutralFeedbackCount, @Model.NegativeFeedbackCount],
+                        backgroundColor: [
+                            colors.black.main,
+                            colors.gray.medium,
+                            colors.gray.light
+                        ],
+                        borderColor: [
+                            colors.black.main,
+                            colors.gray.medium,
+                            colors.gray.light
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+
+            const timeCtx = document.getElementById('timeChart').getContext('2d');
+            new Chart(timeCtx, {
+                type: 'line',
+                data: {
+                    labels: [@Html.Raw(string.Join(", ", Model.SentimentByDay.Keys.Select(k => $"'{k}'")))],
+                    datasets: [{
+                        label: 'Liczba Opinii',
+                        data: [@string.Join(", ", Model.SentimentByDay.Values)],
+                        backgroundColor: colors.black.background,
+                        borderColor: colors.black.main,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointBackgroundColor: colors.black.main,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            @if (Model.LanguageDistribution != null && Model.LanguageDistribution.Any())
+            {
+                <text>
+                // Language Distribution Chart
+                const languageCtx = document.getElementById('languageChart').getContext('2d');
+                new Chart(languageCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [@Html.Raw(string.Join(", ", Model.LanguageDistribution.Keys.Select(k => $"'{k}'")))],
+                        datasets: [{
+                            data: [@string.Join(", ", Model.LanguageDistribution.Values)],
+                            backgroundColor: [
+                                colors.black.main,
+                                colors.black.light,
+                                colors.black.lighter,
+                                colors.black.lightest,
+                                colors.gray.dark,
+                                colors.gray.medium,
+                                colors.gray.light
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 15
+                                }
+                            }
+                        }
+                    }
+                });
+                </text>
+            }
+            
+            @if (Model.TopKeyPhrases != null && Model.TopKeyPhrases.Any())
+            {
+                <text>
+                // Key Phrases Chart
+                const keyPhrasesCtx = document.getElementById('keyPhrasesChart').getContext('2d');
+                new Chart(keyPhrasesCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [@Html.Raw(string.Join(", ", Model.TopKeyPhrases.Keys.Select(k => $"'{k}'")))],
+                        datasets: [{
+                            label: 'Częstotliwość',
+                            data: [@string.Join(", ", Model.TopKeyPhrases.Values)],
+                            backgroundColor: colors.black.light,
+                            borderColor: colors.black.main,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                </text>
+            }
+        });
+    </script>
+}

@@ -1,0 +1,81 @@
+@model SmartFeedbackCollector.Models.ViewModels.FeedbackListViewModel
+
+@{
+    ViewData["Title"] = "Lista Opinii";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Wszystkie Opinie</h1>
+    <p class="lead">Przeglądaj przesłane opinie wraz z wynikami analizy sentymentu.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-warning fade-in">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (Model.Feedbacks == null || !Model.Feedbacks.Any())
+        {
+            <div class="alert alert-info fade-in">Nie przesłano jeszcze żadnych opinii.</div>
+        }
+        else
+        {
+            <div class="table-responsive fade-in">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Czas Przesłania</th>
+                            <th>Opinia</th>
+                            <th>Sentyment</th>
+                            <th>Wynik</th>
+                            <th>Status</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var feedback in Model.Feedbacks.OrderByDescending(f => f.SubmissionTime))
+                        {
+                            var sentimentClass = feedback.SentimentCategory == "Positive" ? "text-success" :
+                                                feedback.SentimentCategory == "Negative" ? "text-danger" : "text-warning";
+                            
+                            var sentimentTranslation = feedback.SentimentCategory == "Positive" ? "Pozytywny" :
+                                                       feedback.SentimentCategory == "Negative" ? "Negatywny" : "Neutralny";
+
+                            var statusText = feedback.IsApproved ? "Zatwierdzona" : feedback.RequiresReview ? "Oczekująca" : "Odrzucona";
+                            
+                            <tr>
+                                <td>@feedback.SubmissionTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (feedback.Content.Length > 100)
+                                    {
+                                        @(feedback.Content.Substring(0, 97) + "...")
+                                    }
+                                    else
+                                    {
+                                        @feedback.Content
+                                    }
+                                </td>
+                                <td><span class="@sentimentClass">@sentimentTranslation</span></td>
+                                <td>@feedback.SentimentScore.ToString("P0")</td>
+                                <td>
+                                    <span class="badge @(feedback.IsApproved ? "bg-dark" : feedback.RequiresReview ? "bg-secondary" : "bg-secondary")">
+                                        @statusText
+                                    </span>
+                                </td>
+                                <td>
+                                    <a asp-action="Detail" asp-route-id="@feedback.Id" class="btn btn-sm btn-outline-dark">
+                                        <i class="bi bi-eye"></i> Szczegóły
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

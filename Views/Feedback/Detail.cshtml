@@ -1,0 +1,230 @@
+@model SmartFeedbackCollector.Models.ViewModels.FeedbackDetailViewModel
+
+@{
+    ViewData["Title"] = "Szczegóły Opinii";
+
+    var sentimentTranslation = Model.SentimentCategory == "Positive" ? "Pozytywny" :
+                               Model.SentimentCategory == "Negative" ? "Negatywny" : "Neutralny";
+
+    var statusText = Model.ApprovalStatusText == "Approved" ? "Zatwierdzona" :
+                     Model.ApprovalStatusText == "Pending" ? "Oczekująca" : "Odrzucona";
+
+    var moderationStatusText = Model.ModerationStatusText == "Safe" ? "Bezpieczna" : "Oznaczona";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Strona Główna</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Feedback" asp-action="List">Wszystkie Opinie</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Szczegóły Opinii</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Szczegóły Opinii</h5>
+                    <div>
+                        <span class="badge bg-dark me-2"><i class="bi bi-translate"></i> @Model.FormattedLanguage</span>
+                        <span class="badge bg-dark">ID: @Model.Id.Substring(0, 8)...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Przesłano:</span>
+                                <span class="detail-value">@Model.FormattedTime</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Sentyment:</span>
+                                <span class="detail-value @Model.SentimentColorClass">@sentimentTranslation</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value @Model.ApprovalStatusClass">@statusText</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-content p-4 mb-4 bg-light rounded">
+                        <p class="mb-0">@Model.Content</p>
+                    </div>
+
+                    @if (Model.HasModerationIssues)
+                    {
+                        <div class="moderation-section mb-4">
+                            <div class="card border-secondary">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-shield-exclamation"></i> Informacje o Moderacji Treści</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="detail-item">
+                                                <span class="detail-label">Status Bezpieczeństwa:</span>
+                                                <span class="detail-value @Model.ModerationStatusClass">@moderationStatusText</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="detail-label">Poziom:</span>
+                                                <span class="detail-value">@Model.SeverityLevel / 7</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            @if (Model.FlaggedCategories?.Any() == true)
+                                            {
+                                                <div class="detail-item">
+                                                    <span class="detail-label">Oznaczone Kategorie:</span>
+                                                    <div class="mt-1">
+                                                        @foreach (var category in Model.FlaggedCategories)
+                                                        {
+                                                            <span class="badge bg-dark me-1">@category</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(Model.ReviewNotes))
+                                            {
+                                                <div class="detail-item">
+                                                    <span class="detail-label">Notatki z Przeglądu:</span>
+                                                    <span class="detail-value">@Model.ReviewNotes</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.HasKeyPhrases)
+                    {
+                        <div class="key-phrases-section mb-4">
+                            <h5>Kluczowe Frazy</h5>
+                            <div class="key-phrases-container">
+                                @foreach (var phrase in Model.KeyPhrases)
+                                {
+                                    <span class="key-phrase">@phrase</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    Analiza Sentymentu
+                                </div>
+                                <div class="card-body">
+                                    <div class="sentiment-gauge mb-3 text-center">
+                                        <div class="sentiment-meter">
+                                            <div class="sentiment-value" style="width: @Model.FormattedScore;"></div>
+                                        </div>
+                                        <div class="sentiment-score mt-2">
+                                            Pewność: <strong>@Model.FormattedScore</strong>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0 text-center @Model.SentimentColorClass">@Model.SentimentDescription</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    Bezpieczeństwo Treści
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Status Bezpieczeństwa
+                                            <span class="badge @(Model.IsContentSafe ? "bg-dark" : "bg-secondary") rounded-pill">@moderationStatusText</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Poziom
+                                            <span class="badge bg-dark rounded-pill">@Model.SeverityLevel / 7</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Oznaczone Kategorie
+                                            <span class="badge bg-dark rounded-pill">@(Model.FlaggedCategories?.Count ?? 0)</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Status Zatwierdzenia
+                                            <span class="badge @(Model.IsApproved ? "bg-dark" : Model.RequiresReview ? "bg-secondary" : "bg-secondary") rounded-pill">@statusText</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a asp-action="List" class="btn btn-outline-dark">Powrót do Listy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .detail-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            margin-right: 0.5rem;
+        }
+        
+        .detail-value {
+            font-weight: 400;
+        }
+        
+        .sentiment-meter {
+            height: 20px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .sentiment-value {
+            height: 100%;
+            background-color: #000;
+            border-radius: 10px;
+        }
+        
+        .feedback-content {
+            border-left: 4px solid #000;
+            font-size: 1.1rem;
+        }
+        
+        .key-phrases-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .key-phrase {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            padding: 4px 12px;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+    </style>
+}

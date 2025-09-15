@@ -1,0 +1,24 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "CognitiveServices": {
+    "TextAnalyticsEndpoint": "",
+    "TextAnalyticsKey": ""
+  },
+  "ContentSafety": {
+    "Endpoint": "",
+    "Key": "",
+    "SeverityThreshold": 4
+  },
+  
+  "AzureStorage": {
+    "ConnectionString": "",
+    "DatabaseName": "",
+    "ContainerName": ""
+  }
+}

@@ -1,0 +1,100 @@
+@model List<SmartFeedbackCollector.Models.Domain.Feedback>
+
+@{
+    ViewData["Title"] = "Oczekujące na Recenzję";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Treść Oczekująca na Recenzję</h1>
+    <p class="lead">Przeglądaj i moderuj oznaczone zgłoszenia.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success fade-in">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-warning fade-in">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (Model == null || !Model.Any())
+        {
+            <div class="alert alert-info fade-in">
+                <i class="bi bi-check-circle"></i> Brak treści oczekujących na recenzję. Wszystkie zgłoszenia są aktualne!
+            </div>
+            <div class="text-center">
+                <a asp-action="Index" class="btn btn-outline-dark">Powrót do Panelu Administratora</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive fade-in">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Czas Przesłania</th>
+                            <th>Podgląd Treści</th>
+                            <th>Oznaczone Kategorie</th>
+                            <th>Poziom</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var feedback in Model.OrderByDescending(f => f.SubmissionTime))
+                        {
+                            var severityClass = feedback.SeverityLevel >= 5 ? "text-danger" : 
+                                              feedback.SeverityLevel >= 3 ? "text-warning" : "text-success";
+                            
+                            <tr>
+                                <td>@feedback.SubmissionTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (feedback.Content.Length > 80)
+                                    {
+                                        @(feedback.Content.Substring(0, 77) + "...")
+                                    }
+                                    else
+                                    {
+                                        @feedback.Content
+                                    }
+                                </td>
+                                <td>
+                                    @if (feedback.FlaggedCategories?.Any() == true)
+                                    {
+                                        @foreach (var category in feedback.FlaggedCategories)
+                                        {
+                                            <span class="badge bg-dark me-1">@category</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@severityClass fw-bold">@feedback.SeverityLevel / 7</span>
+                                </td>
+                                <td>
+                                    <a asp-action="Detail" asp-route-id="@feedback.Id" class="btn btn-sm btn-outline-dark me-1">
+                                        <i class="bi bi-eye"></i> Przejrzyj
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center mt-3">
+                <a asp-action="Index" class="btn btn-outline-dark">Powrót do Panelu Administratora</a>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "Panel Administratora";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Panel Administratora</h1>
+    <p class="lead">Zarządzaj moderacją treści i przeglądaj oznaczone opinie.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle-fill fs-1" style="color: #6b6b6b;"></i>
+                <h5 class="card-title mt-3">Oczekujące Recenzje</h5>
+                <p class="card-text">
+                    <span class="badge bg-dark fs-6">@ViewBag.PendingCount</span>
+                </p>
+                <a asp-action="PendingReview" class="btn btn-outline-dark">Przejrzyj</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-check fs-1" style="color: #2c2c2c;"></i>
+                <h5 class="card-title mt-3">Wszystkie Opinie</h5>
+                <p class="card-text">Zobacz wszystkie przesłane opinie, w tym zatwierdzone treści.</p>
+                <a asp-controller="Feedback" asp-action="List" class="btn btn-outline-dark">Zobacz Wszystkie</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <i class="bi bi-x-circle-fill fs-1" style="color: #444444;"></i>
+                <h5 class="card-title mt-3">Odrzucona Treść</h5>
+                <p class="card-text">Przeglądaj wcześniej odrzucone opinie.</p>
+                <a asp-action="RejectedFeedback" class="btn btn-outline-dark">Zobacz Odrzucone</a>
+            </div>
+        </div>
+    </div>
+</div>
+

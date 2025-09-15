@@ -1,0 +1,104 @@
+@model List<SmartFeedbackCollector.Models.Domain.Feedback>
+
+@{
+    ViewData["Title"] = "Odrzucone Opinie";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Odrzucona Treść</h1>
+    <p class="lead">Przeglądaj wcześniej odrzucone zgłoszenia.</p>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="alert alert-info fade-in">
+                <i class="bi bi-info-circle"></i> Nie znaleziono odrzuconej treści.
+            </div>
+            <div class="text-center">
+                <a asp-action="Index" class="btn btn-outline-dark">Powrót do Panelu Administratora</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive fade-in">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Czas Przesłania</th>
+                            <th>Podgląd Treści</th>
+                            <th>Oznaczone Kategorie</th>
+                            <th>Ważność</th>
+                            <th>Notatki z Recenzji</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var feedback in Model.OrderByDescending(f => f.SubmissionTime))
+                        {
+                            var severityClass = feedback.SeverityLevel >= 5 ? "text-danger" : 
+                                              feedback.SeverityLevel >= 3 ? "text-warning" : "text-success";
+                            
+                            <tr>
+                                <td>@feedback.SubmissionTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (feedback.Content.Length > 60)
+                                    {
+                                        @(feedback.Content.Substring(0, 57) + "...")
+                                    }
+                                    else
+                                    {
+                                        @feedback.Content
+                                    }
+                                </td>
+                                <td>
+                                    @if (feedback.FlaggedCategories?.Any() == true)
+                                    {
+                                        @foreach (var category in feedback.FlaggedCategories)
+                                        {
+                                            <span class="badge bg-dark me-1">@category</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@severityClass fw-bold">@feedback.SeverityLevel</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(feedback.ReviewNotes))
+                                    {
+                                        @if (feedback.ReviewNotes.Length > 40)
+                                        {
+                                            @(feedback.ReviewNotes.Substring(0, 37) + "...")
+                                        }
+                                        else
+                                        {
+                                            @feedback.ReviewNotes
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Brak notatek</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-controller="Feedback" asp-action="Detail" asp-route-id="@feedback.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Zobacz
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center mt-3">
+                <a asp-action="Index" class="btn btn-outline-dark">Powrót do Panelu Administratora</a>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,143 @@
+@model SmartFeedbackCollector.Models.Domain.Feedback
+
+@{
+    ViewData["Title"] = "Przegląd Treści";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Admin" asp-action="Index">Admin</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Admin" asp-action="PendingReview">Oczekujące na Recenzję</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Przegląd Treści</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Przegląd Treści</h5>
+                    <div>
+                        <span class="badge bg-secondary">Oczekuje na Recenzję</span>
+                        <span class="badge bg-dark ms-2">ID: @Model.Id.Substring(0, 8)...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Przesłano:</span>
+                                <span class="detail-value">@Model.SubmissionTime.ToString("dddd, MMMM d, yyyy 'o' h:mm tt")</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Status Bezpieczeństwa:</span>
+                                <span class="detail-value @(Model.IsContentSafe ? "text-success" : "text-danger")">
+                                    @(Model.IsContentSafe ? "Bezpieczna" : "Oznaczona")
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="detail-item">
+                                <span class="detail-label">Poziom Ważności:</span>
+                                <span class="detail-value @(Model.SeverityLevel >= 5 ? "text-danger" : Model.SeverityLevel >= 3 ? "text-warning" : "text-success")">
+                                    @Model.SeverityLevel / 7
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-content p-4 mb-4 bg-light rounded border-start border-4" style="border-color: #6b6b6b !important;">
+                        <h6 class="text-muted mb-2">Przesłana Treść:</h6>
+                        <p class="mb-0 fs-5">@Model.Content</p>
+                    </div>
+
+                    @if (Model.FlaggedCategories?.Any() == true)
+                    {
+                        <div class="flagged-categories mb-4">
+                            <h6>Oznaczone Kategorie:</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var category in Model.FlaggedCategories)
+                                {
+                                    <span class="badge bg-dark fs-6">@category</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-dark">
+                                <div class="card-header bg-dark text-white">
+                                    <i class="bi bi-check-circle"></i> Zatwierdź Treść
+                                </div>
+                                <div class="card-body">
+                                    <form asp-action="Approve" method="post">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <div class="mb-3">
+                                            <label for="approveNotes" class="form-label">Notatki z Recenzji (Opcjonalne)</label>
+                                            <textarea name="reviewNotes" id="approveNotes" class="form-control" rows="3" placeholder="Dodaj notatki dotyczące tej decyzji o zatwierdzeniu..."></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-dark">
+                                            <i class="bi bi-check-lg"></i> Zatwierdź Treść
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-secondary">
+                                <div class="card-header bg-secondary text-white">
+                                    <i class="bi bi-x-circle"></i> Odrzuć Treść
+                                </div>
+                                <div class="card-body">
+                                    <form asp-action="Reject" method="post">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <div class="mb-3">
+                                            <label for="rejectNotes" class="form-label">Powód Odrzucenia</label>
+                                            <textarea name="reviewNotes" id="rejectNotes" class="form-control" rows="3" placeholder="Wyjaśnij, dlaczego ta treść jest odrzucana..." required></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-lg"></i> Odrzuć Treść
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a asp-action="PendingReview" class="btn btn-outline-dark">Powrót do Oczekujących Recenzji</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .detail-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            margin-right: 0.5rem;
+        }
+        
+        .detail-value {
+            font-weight: 400;
+        }
+        
+        .feedback-content {
+            font-size: 1.1rem;
+        }
+    </style>
+}

@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Strona Główna";
+}
+
+<div class="text-center mb-5">
+    <h1 class="display-4">Inteligentny System Zbierania Opinii</h1>
+    <p class="lead">Proste narzędzie do zbierania i analizowania opinii przy użyciu Azure Cognitive Services</p>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <h5 class="card-title">Prześlij Opinię</h5>
+                <p class="card-text">Podziel się swoją opinią o naszych produktach.</p>
+                <a asp-controller="Feedback" asp-action="Submit" class="btn btn-primary">Prześlij</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <h5 class="card-title">Zobacz Opinie</h5>
+                <p class="card-text">Zobacz wszystkie opinie, które otrzymaliśmy do tej pory.</p>
+                <a asp-controller="Feedback" asp-action="List" class="btn btn-primary">Zobacz</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fade-in">
+            <div class="card-body text-center">
+                <h5 class="card-title">Panel</h5>
+                <p class="card-text">Analizuj trendy i sentyment w opiniach.</p>
+                <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">Panel</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card fade-in">
+            <div class="card-body">
+                <h3 class="text-center mb-3">O Aplikacji</h3>
+                <p>
+                    Inteligentny System Zbierania Opinii to aplikacja webowa (ASP.NET Core MVC) stworzona jako wzorcowy przykład (demo), który pokazuje, jak zbudować system do zbierania i analizowania opinii, opierając się na ekosystemie Microsoft Azure.
+                </p>
+                <p>Ta minimalistyczna aplikacja demonstruje integrację kilku usług Azure:</p>
+                <ul>
+                    <li>Content Safety - Do sprawdzania, czy opinie zawierają szkodliwe treści</li>
+                    <li>Azure Text Analytics - Do analizy sentymentu opinii</li>
+                    <li>Azure Cosmos DB - Do przechowywania danych o opiniach</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

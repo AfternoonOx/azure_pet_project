@@ -1,0 +1,76 @@
+@model SmartFeedbackCollector.Models.ViewModels.FeedbackViewModel
+
+@{
+    ViewData["Title"] = "Prześlij Opinię";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Prześlij Swoją Opinię</h1>
+    <p class="lead">Cenimy Twoją opinię! Podziel się swoimi przemyśleniami poniżej.</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success fade-in">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-secondary fade-in" style="border-left: 4px solid #6b6b6b;">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <div class="card fade-in mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Zasady Dotyczące Treści</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">Upewnij się, że Twoja opinia jest zgodna z poniższymi zasadami:</p>
+                <ul class="mb-0">
+                    <li>Bądź uprzejmy i konstruktywny</li>
+                    <li>Unikaj mowy nienawiści, nękania i obraźliwego języka</li>
+                    <li>Utrzymuj treść adekwatną do platformy</li>
+                    <li>Treść zostanie automatycznie sprawdzona pod kątem bezpieczeństwa</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card fade-in">
+            <div class="card-body">
+                <form asp-action="Submit" method="post" id="feedbackForm">
+                    <div class="form-group mb-3">
+                        <label asp-for="Content" class="form-label">Twoja Opinia</label>
+                        <textarea asp-for="Content" class="form-control" rows="5" placeholder="Podziel się swoją opinią tutaj (minimum 10 znaków)"></textarea>
+                        <span asp-validation-for="Content" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitButton">Prześlij Opinię</button>
+                </form>
+                
+                <div id="processingMessage" class="alert alert-info mt-3" style="display: none;">
+                    Twoja opinia jest przetwarzana...
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Ładowanie...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+            if (this.checkValidity()) {
+                document.getElementById('processingMessage').style.display = 'block';
+                document.getElementById('submitButton').disabled = true;
+            }
+        });
+    </script>
+}
