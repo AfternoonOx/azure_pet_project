@@ -29,12 +29,27 @@ builder.Services.Configure<CognitiveServicesOptions>(
     builder.Configuration.GetSection("CognitiveServices"));
 builder.Services.Configure<ContentSafetyOptions>(
     builder.Configuration.GetSection("ContentSafety"));
+builder.Services.Configure<KeyVaultOptions>(
+    builder.Configuration.GetSection("KeyVault"));
+
+var keyVaultConfig = builder.Configuration.GetSection("KeyVault");
+if (keyVaultConfig.GetValue<bool>("Enabled"))
+{
+    var vaultUri = keyVaultConfig.GetValue<string>("VaultUri");
+    if (!string.IsNullOrEmpty(vaultUri))
+    {
+        builder.Configuration.AddAzureKeyVault(
+            new Uri(vaultUri),
+            new Azure.Identity.DefaultAzureCredential());
+    }
+}
 
 // Rejestracja serwisów i repozytoriów.
 
 builder.Services.AddSingleton<IFeedbackRepository, CosmosDbFeedbackRepository>();
 builder.Services.AddSingleton<ISentimentService, AzureSentimentService>();
 builder.Services.AddSingleton<IContentSafetyService, AzureContentSafetyService>();
+builder.Services.AddSingleton<ISecretService, AzureKeyVaultService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAdminService, AdminService>();

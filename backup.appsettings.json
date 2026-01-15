@@ -15,10 +15,13 @@
     "Key": "",
     "SeverityThreshold": 4
   },
-  
   "AzureStorage": {
     "ConnectionString": "",
     "DatabaseName": "",
     "ContainerName": ""
+  },
+  "KeyVault": {
+    "Enabled": false,
+    "VaultUri": ""
   }
 }
