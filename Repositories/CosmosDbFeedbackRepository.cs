@@ -1,8 +1,8 @@
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Options;
 using SmartFeedbackCollector.Models.Configuration;
 using SmartFeedbackCollector.Models.Domain;
 using SmartFeedbackCollector.Repositories.Interfaces;
+using SmartFeedbackCollector.Services.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,26 +13,51 @@ namespace SmartFeedbackCollector.Repositories
 
     public class CosmosDbFeedbackRepository : IFeedbackRepository
     {
-        private readonly Container _container;
-        private readonly CosmosClient _client;
+        private readonly IConfigurationService _configService;
+        private Container? _container;
+        private CosmosClient? _client;
+        private bool _initializationAttempted = false;
+        private string? _initializationError;
 
-        /// <summary>
-        /// Konstruktor - inicjalizuje połączenie z Cosmos DB
-        /// </summary>
-        /// <param name="options">Opcje konfiguracji Azure Storage</param>
-        public CosmosDbFeedbackRepository(IOptions<AzureStorageOptions> options)
+        public CosmosDbFeedbackRepository(IConfigurationService configService)
         {
-            var clientOptions = new CosmosClientOptions
-            {
-                ConnectionMode = ConnectionMode.Direct,           // Bezpośrednie połączenie (szybsze)
-                RequestTimeout = System.TimeSpan.FromSeconds(10), // Timeout dla żądań
-                MaxRetryAttemptsOnRateLimitedRequests = 3,        // Max próby przy ograniczeniu prędkości
-                MaxRetryWaitTimeOnRateLimitedRequests = System.TimeSpan.FromSeconds(5) // Czas oczekiwania między próbami
-            };
+            _configService = configService;
+        }
 
-            _client = new CosmosClient(options.Value.ConnectionString, clientOptions);
-            var database = _client.GetDatabase(options.Value.DatabaseName);
-            _container = database.GetContainer(options.Value.ContainerName);
+        private async Task<Container?> GetContainerAsync()
+        {
+            if (_initializationAttempted && _container != null)
+                return _container;
+
+            if (_initializationAttempted && _initializationError != null)
+                throw new InvalidOperationException($"CosmosDbFeedbackRepository failed to initialize: {_initializationError}");
+
+            _initializationAttempted = true;
+
+            try
+            {
+                var options = await _configService.GetConfigurationAsync<AzureStorageOptions>("AzureStorage");
+                
+                var clientOptions = new CosmosClientOptions
+                {
+                    ConnectionMode = ConnectionMode.Direct,
+                    RequestTimeout = System.TimeSpan.FromSeconds(10),
+                    MaxRetryAttemptsOnRateLimitedRequests = 3,
+                    MaxRetryWaitTimeOnRateLimitedRequests = System.TimeSpan.FromSeconds(5)
+                };
+
+                _client = new CosmosClient(options.ConnectionString, clientOptions);
+                var database = _client.GetDatabase(options.DatabaseName);
+                _container = database.GetContainer(options.ContainerName);
+                
+                return _container;
+            }
+            catch (Exception ex)
+            {
+                _initializationError = ex.Message;
+                Console.WriteLine($"Failed to initialize CosmosDbFeedbackRepository: {ex.Message}");
+                throw new InvalidOperationException("Failed to initialize CosmosDbFeedbackRepository.", ex);
+            }
         }
 
         /// <summary>
@@ -62,8 +87,14 @@ namespace SmartFeedbackCollector.Repositories
         /// <returns>Lista wszystkich feedback'ów</returns>
         public async Task<List<Feedback>> GetAllFeedbackAsync()
         {
+            var container = await GetContainerAsync();
+            if (container == null)
+            {
+                throw new InvalidOperationException($"Could not initialize database connection: {_initializationError}");
+            }
+
             var queryDefinition = new QueryDefinition("SELECT * FROM c ORDER BY c.SubmissionTime DESC");
-            var query = _container.GetItemQueryIterator<Feedback>(queryDefinition,
+            var query = container.GetItemQueryIterator<Feedback>(queryDefinition,
                 requestOptions: new QueryRequestOptions { MaxItemCount = 100 }); // Maksymalnie 100 elementów na stronę
 
             var results = new List<Feedback>();
@@ -84,9 +115,15 @@ namespace SmartFeedbackCollector.Repositories
         /// <returns>Feedback o podanym ID lub null jeśli nie znaleziono</returns>
         public async Task<Feedback> GetFeedbackByIdAsync(string id)
         {
+            var container = await GetContainerAsync();
+            if (container == null)
+            {
+                throw new InvalidOperationException($"Could not initialize database connection: {_initializationError}");
+            }
+
             try
             {
-                var response = await _container.ReadItemAsync<Feedback>(id, new PartitionKey(id));
+                var response = await container.ReadItemAsync<Feedback>(id, new PartitionKey(id));
                 return response.Resource;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -106,15 +143,21 @@ namespace SmartFeedbackCollector.Repositories
         /// <returns>Zaktualizowany feedback</returns>
         public async Task<Feedback> UpdateFeedbackAsync(Feedback feedback)
         {
+            var container = await GetContainerAsync();
+            if (container == null)
+            {
+                throw new InvalidOperationException($"Could not initialize database connection: {_initializationError}");
+            }
+
             try
             {
-                var response = await _container.ReplaceItemAsync(feedback, feedback.Id, new PartitionKey(feedback.Id));
+                var response = await container.ReplaceItemAsync(feedback, feedback.Id, new PartitionKey(feedback.Id));
                 return response.Resource;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
                 await Task.Delay(1000);
-                var response = await _container.ReplaceItemAsync(feedback, feedback.Id, new PartitionKey(feedback.Id));
+                var response = await container.ReplaceItemAsync(feedback, feedback.Id, new PartitionKey(feedback.Id));
                 return response.Resource;
             }
         }

@@ -3,6 +3,7 @@ using SmartFeedbackCollector.Repositories;
 using SmartFeedbackCollector.Repositories.Interfaces;
 using SmartFeedbackCollector.Services;
 using SmartFeedbackCollector.Services.Interfaces;
+using SmartFeedbackCollector.Middleware;
 
 /// <summary>
 /// Główny plik aplikacji, odpowiedzialny za konfigurację i uruchomienie serwera webowego.
@@ -23,12 +24,6 @@ builder.Services.AddMemoryCache();
 /*
  * Konfiguracja opcji aplikacji z pliku appsettings.json.
  */
-builder.Services.Configure<AzureStorageOptions>(
-    builder.Configuration.GetSection("AzureStorage"));
-builder.Services.Configure<CognitiveServicesOptions>(
-    builder.Configuration.GetSection("CognitiveServices"));
-builder.Services.Configure<ContentSafetyOptions>(
-    builder.Configuration.GetSection("ContentSafety"));
 builder.Services.Configure<KeyVaultOptions>(
     builder.Configuration.GetSection("KeyVault"));
 
@@ -50,6 +45,7 @@ builder.Services.AddSingleton<IFeedbackRepository, CosmosDbFeedbackRepository>()
 builder.Services.AddSingleton<ISentimentService, AzureSentimentService>();
 builder.Services.AddSingleton<IContentSafetyService, AzureContentSafetyService>();
 builder.Services.AddSingleton<ISecretService, AzureKeyVaultService>();
+builder.Services.AddSingleton<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -57,6 +53,8 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 var app = builder.Build();
 
 // --- Konfiguracja potoku przetwarzania żądań HTTP (Middleware Pipeline) ---
+
+app.UseMiddleware<ConfigurationErrorMiddleware>();
 
 // W środowisku innym niż deweloperskie, konfiguruje globalną obsługę błędów
 // i włącza HSTS (HTTP Strict Transport Security) dla większego bezpieczeństwa.

@@ -38,5 +38,20 @@ namespace SmartFeedbackCollector.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult ConfigurationError()
+        {
+            var model = HttpContext.Items["ConfigurationError"] as SmartFeedbackCollector.Models.ViewModels.ConfigurationErrorViewModel;
+            if (model == null)
+            {
+                model = new SmartFeedbackCollector.Models.ViewModels.ConfigurationErrorViewModel
+                {
+                    ErrorMessage = "Couldn't load configuration. Please check your credentials if they are valid.",
+                    IsDevelopment = false
+                };
+            }
+            return View(model);
+        }
     }
 }

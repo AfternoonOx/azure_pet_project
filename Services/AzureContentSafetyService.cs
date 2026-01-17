@@ -1,7 +1,6 @@
 using Azure;
 using Azure.AI.ContentSafety;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using SmartFeedbackCollector.Models.Configuration;
 using SmartFeedbackCollector.Models.Domain;
 using SmartFeedbackCollector.Services.Interfaces;
@@ -15,18 +14,41 @@ namespace SmartFeedbackCollector.Services
     /// </summary>
     public class AzureContentSafetyService : IContentSafetyService
     {
-        private readonly ContentSafetyClient _client;
+        private readonly IConfigurationService _configService;
         private readonly IMemoryCache _cache;
-        private readonly ContentSafetyOptions _options;
+        private ContentSafetyClient? _client;
+        private ContentSafetyOptions? _options;
+        private bool _initializationAttempted = false;
+        private string? _initializationError;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(1);
 
-        public AzureContentSafetyService(IOptions<ContentSafetyOptions> options, IMemoryCache cache)
+        public AzureContentSafetyService(IConfigurationService configService, IMemoryCache cache)
         {
+            _configService = configService;
             _cache = cache;
-            _options = options.Value;
-            
-            var credentials = new AzureKeyCredential(_options.Key);
-            _client = new ContentSafetyClient(new Uri(_options.Endpoint), credentials);
+        }
+
+        private async Task<(ContentSafetyClient? client, ContentSafetyOptions? options)> GetClientAsync()
+        {
+            if (_initializationAttempted)
+                return (_client, _options);
+
+            _initializationAttempted = true;
+
+            try
+            {
+                _options = await _configService.GetConfigurationAsync<ContentSafetyOptions>("ContentSafety");
+                var credentials = new AzureKeyCredential(_options.Key);
+                _client = new ContentSafetyClient(new Uri(_options.Endpoint), credentials);
+                
+                return (_client, _options);
+            }
+            catch (Exception ex)
+            {
+                _initializationError = ex.Message;
+                Console.WriteLine($"Failed to initialize AzureContentSafetyService: {ex.Message}");
+                return (null, null);
+            }
         }
 
         /// <summary>
@@ -49,10 +71,22 @@ namespace SmartFeedbackCollector.Services
                 return cachedResult;
             }
 
+            var (client, options) = await GetClientAsync();
+            if (client == null || options == null)
+            {
+                Console.WriteLine($"Content Safety Error: {_initializationError ?? "Service not initialized"}");
+                
+                return new ContentModerationResult
+                {
+                    IsContentSafe = true,
+                    RecommendedAction = "Accept"
+                };
+            }
+
             try
             {
                 var request = new AnalyzeTextOptions(text);
-                var response = await _client.AnalyzeTextAsync(request);
+                var response = await client.AnalyzeTextAsync(request);
                 var analysis = response.Value;
 
                 var result = new ContentModerationResult();
@@ -72,7 +106,7 @@ namespace SmartFeedbackCollector.Services
                     }
                     
                     // Jeśli poziom "ostrości" (severity) przekracza zdefiniowany próg, kategoria jest oflagowana.
-                    if (severity >= _options.SeverityThreshold)
+                    if (severity >= options.SeverityThreshold)
                     {
                         result.FlaggedCategories.Add(categoryName);
                     }

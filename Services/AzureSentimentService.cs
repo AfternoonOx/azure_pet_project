@@ -1,8 +1,6 @@
 using Azure;
 using Azure.AI.TextAnalytics;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using SmartFeedbackCollector.Models.Configuration;
 using SmartFeedbackCollector.Services.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -21,21 +19,46 @@ namespace SmartFeedbackCollector.Services
     /// </summary>
     public class AzureSentimentService : ISentimentService
     {
-        private readonly TextAnalyticsClient _client;
+        private readonly IConfigurationService _configService;
         private readonly IMemoryCache _cache;
+        private TextAnalyticsClient? _client;
+        private bool _initializationAttempted = false;
+        private string? _initializationError;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(1);
 
-        public AzureSentimentService(IOptions<CognitiveServicesOptions> options, IMemoryCache cache)
+        public AzureSentimentService(IConfigurationService configService, IMemoryCache cache)
         {
+            _configService = configService;
             _cache = cache;
-            
-            var clientOptions = new TextAnalyticsClientOptions 
-            { 
-                Retry = { Delay = TimeSpan.FromSeconds(2), MaxRetries = 3 }
-            };
-            
-            var credentials = new AzureKeyCredential(options.Value.TextAnalyticsKey);
-            _client = new TextAnalyticsClient(new Uri(options.Value.TextAnalyticsEndpoint), credentials, clientOptions);
+        }
+
+        private async Task<TextAnalyticsClient?> GetClientAsync()
+        {
+            if (_initializationAttempted)
+                return _client;
+
+            _initializationAttempted = true;
+
+            try
+            {
+                var options = await _configService.GetConfigurationAsync<Models.Configuration.CognitiveServicesOptions>("CognitiveServices");
+                
+                var clientOptions = new TextAnalyticsClientOptions 
+                { 
+                    Retry = { Delay = TimeSpan.FromSeconds(2), MaxRetries = 3 }
+                };
+                
+                var credentials = new AzureKeyCredential(options.TextAnalyticsKey);
+                _client = new TextAnalyticsClient(new Uri(options.TextAnalyticsEndpoint), credentials, clientOptions);
+                
+                return _client;
+            }
+            catch (Exception ex)
+            {
+                _initializationError = ex.Message;
+                Console.WriteLine($"Failed to initialize AzureSentimentService: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
@@ -50,10 +73,17 @@ namespace SmartFeedbackCollector.Services
             {
                 return result;
             }
+
+            var client = await GetClientAsync();
+            if (client == null)
+            {
+                Console.WriteLine($"Text Analytics Error: {_initializationError ?? "Service not initialized"}");
+                return (0.5, "Neutral");
+            }
             
             try
             {
-                var response = await _client.AnalyzeSentimentAsync(text);
+                var response = await client.AnalyzeSentimentAsync(text);
                 var sentiment = response.Value;
 
                 var score = sentiment.ConfidenceScores.Positive;
@@ -98,10 +128,17 @@ namespace SmartFeedbackCollector.Services
             {
                 return cachedKeyPhrases;
             }
+
+            var client = await GetClientAsync();
+            if (client == null)
+            {
+                Console.WriteLine($"Key Phrase Extraction Error: {_initializationError ?? "Service not initialized"}");
+                return new List<string>();
+            }
             
             try
             {
-                var response = await _client.ExtractKeyPhrasesAsync(text);
+                var response = await client.ExtractKeyPhrasesAsync(text);
                 var keyPhrases = response.Value.ToList();
                 _cache.Set(cacheKey, keyPhrases, CacheDuration);
                 return keyPhrases;
@@ -125,10 +162,17 @@ namespace SmartFeedbackCollector.Services
             {
                 return cachedLanguage;
             }
+
+            var client = await GetClientAsync();
+            if (client == null)
+            {
+                Console.WriteLine($"Language Detection Error: {_initializationError ?? "Service not initialized"}");
+                return "Unknown";
+            }
             
             try
             {
-                var response = await _client.DetectLanguageAsync(text);
+                var response = await client.DetectLanguageAsync(text);
                 var detectedLanguage = response.Value.Name;
                 _cache.Set(cacheKey, detectedLanguage, CacheDuration);
                 return detectedLanguage;
